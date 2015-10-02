@@ -6,7 +6,7 @@ class Article < ActiveRecord::Base
   scope :five_longest_article_names, -> { order("length(name) DESC").limit(5).pluck(:name) }
   scope :all_names, -> { pluck(:name) }
   scope :articles_with_names_less_than_20_char, -> { where("length(name) < ?", 20) }
-
+  
   private
     def update_counter_cache
       Article.update(self.id, :comments_count => self.comments.length) unless self.comments.length == self.comments_count
