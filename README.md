@@ -1,14 +1,11 @@
 # Andela Rails Checkpoint #3
 
-1. Git clone this app and follow the instructions below.
+This app was originally a really slow one, written to test knowledge of best practices when building a Rails data-intensive application to ensure top-notch performance.
 
-```bash
-git clone git@github.com:andela/checkpoint_rails_worst_app.git
-```
 
-### This is one of the worst performing Rails apps ever.
+### This was one of the worst performing Rails apps ever.
 
-Currently, the home page takes this long to load:
+Previously, the home page takes this long to load:
 
 ```bash
 ...
@@ -18,11 +15,12 @@ Rendered author/index.html.erb within layouts/application (9615.5ms)
 Completed 200 OK in 9793ms (Views: 7236.5ms | ActiveRecord: 2550.1ms)
 ```
 
-The view takes 7.2 seconds to load. The AR querying takes 2.5 second to load. The page takes close to 10 seconds to load. That's not great at all. That's just awful.
+The view took 7.2 seconds to load. The AR querying took 2.5 second to load. The home page took close to 10 seconds to load. That's not great at all. That's just awful.
 
 The stats page is even worse:
 
-```bash
+```
+bash
 Rendered stats/index.html.erb within layouts/application (9.9ms)
 Completed 200 OK in 16197ms (Views: 38.0ms | ActiveRecord: 4389.4ms)
 ```
@@ -33,21 +31,17 @@ So, **What can we do?**
 
 Well, let's focus on improving the view and the AR querying first!
 
-Complete this tutorial first:
-[Jumpstart Lab Tutorial on Querying](http://tutorials.jumpstartlab.com/topics/performance/queries.html)
 
-# Requirements for this checkpoint
-* add an index to the correct columns
-* implement eager loading vs lazy loading on the right pages.
-* replace Ruby lookups with ActiveRecord methods.
-* fix html_safe issue.
-* page cache or fragment cache the root page.
-* No need for testing, but you need to get the time down to a reasonable time for both pages.
-* The root page needs to implement includes, pagination, and fragment caching.
+# Things I implemented in this checkpoint
+* indexed all columns that were searched and read from much more frequently than they were written to.
+* implemented eager loading vs lazy loading on the right pages. Optimized sql queries using eager loading scopes to limit database queries to the barest minimum.
+* replaced Ruby lookups with ActiveRecord methods.
+* fixed html_safe issue.
+* implemented russian dolls caching technique (nested fragment caching) on the root page.
+* Paginated where too many information is being pulled out of the database to be rendered on a page, especially the homepage.
 
-##### Index some columns. But what should we index?
+##### Indexed some columns. But what should we index?
 
-[great explanation of how to index columns and when](http://tutorials.jumpstartlab.com/topics/performance/queries.html#indices)
 
 Our non-performant app has many opportunities to index. Just look at our associations. There are many foreign keys in our database...
 
@@ -99,6 +93,13 @@ end
 
 Both methods use Ruby methods (sort_by) instead of ActiveRecord. Let's fix that.
 
+```
+scope :most_prolific_writer, -> { order("articles_count DESC").limit(1) }
+scope :with_most_upvoted_article, -> { joins(:articles).where("articles.upvotes").order("articles.upvotes DESC").limit(1).pluck(:name) }
+```
+
+This minimizes `ActiveRecord` load time as just one query is fired for the same purpose in both cases.
+
 ##### html_safe makes it unsafe or safe?.
 
 This is why variable and method naming is important.
@@ -111,23 +112,29 @@ In the show.html.erb for articles, we have this code
   <% end %>
 ```
 
-What's wrong with it?
+##### What's wrong with it?
 
 The danger is if comment body are user-generated input...which they are.
 
-See [here](http://stackoverflow.com/questions/4251284/raw-vs-html-safe-vs-h-to-unescape-html)
+Any point in your view you render a text directly from database (or any other sort), Rails escapes potentially unsafe scripts and html tags by default.
 
-Understand now? Fix the problem.
+You only use `html_safe` when you are **ABSOLUTELY SURE** of the source of the text. As a rule of thumb, avoid using it. text marked as `html_safe` will run scripts as if they are local on your server.
 
 
-##### Caching
+##### Conclusion
 
-Our main view currently takes 4 seconds to load
+Our main view took 4 seconds to load
 
 ```bash
 Rendered author/index.html.erb within layouts/application (5251.7ms)
 Completed 200 OK in 5269ms (Views: 4313.1ms | ActiveRecord: 955.6ms)
 ```
 
-Let's fix that. Read this:
-[fragment caching](http://guides.rubyonrails.org/caching_with_rails.html#fragment-caching)
+After optimizing, performance improved considerably and now, we have these results
+
+```bash
+Rendered author/index.html.erb within layouts/application (12.3ms)
+Completed 200 OK in 5269ms (Views: 9.6ms | ActiveRecord: 2.7ms)
+```
+
+Any one can learn to code. Performance and simplicity is what separates a good developer from a great one.
