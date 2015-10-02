@@ -1,16 +1,27 @@
 <h1> This is a terrible authors index page. One of the worst ever. </h1>
-
+<%= will_paginate @authors %>
 <nav style="background-color: #9AEEE8">
   <%= link_to "Stats", stats_index_path %>
 </nav>
-
-<div class="author">
-  <% @authors.each do |author| %>
-
-      <h2>My name is <%= author.name %></h2>
-      <% author.articles.each do |art| %>
-        <p>I wrote: <span style="text-decoration: underline"><%= link_to art.name, articles_show_path(art) %> </span></p>
+<% cache("authors #{@authors.current_page}") do %>
+  <div class="author">
+    <% @authors.each do |author| %>
+      <% cache(author) do %>
+        <div class="author_card">
+          <h2>My name is <span class="author_name"><%= author.name %></span></h2>
+          <div class="articles">I wrote:
+            <ul>
+              <% author.articles.each do |art| %>
+                <% cache(art) do %>
+                  <li><span style="text-decoration: underline"><%= link_to art.name, articles_show_path(art.id) %> </span>
+                  </li>
+                  <% end %>
+              <% end %>
+            </ul>
+        </div>
+      </div>
       <% end %>
-
-  <% end %>
-</div>
+    <% end %>
+  </div>
+<% end %>
+<%= will_paginate @authors %>

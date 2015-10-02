@@ -1,13 +1,19 @@
 <h1>Terrible article show page</h1>
-<h3><%= @article.name %></h1>
+<% if @article %>
+  <% cache(@article) do %>
+    <h3><%= @article.name %></h1>
 
-<p> Article body: <%= @article.body %></p>
+    <p> Article body: <%= @article.body %></p>
 
-<h2>Comments section</h2>
-<p>
-  <% @article.comments.each do |com| %>
-    <%= com.body.html_safe %>
+    <h2>Comments section</h2>
+    <p>
+      <% @article.comments.each do |com| %>
+      <% cache(com) do %>
+        <%= com.body %>
+        <% end %>
+      <% end %>
+    </p>
+
+    <%= link_to "New Comment", comments_new_path(article: @article.id) %>
   <% end %>
-</p>
-
-<%= link_to "New Comment", comments_new_path(article: @article.id) %>
+<% end %>
